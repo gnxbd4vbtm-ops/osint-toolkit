@@ -5,7 +5,6 @@
     <ProjectReference Include="..\OsintToolkit.Data\OsintToolkit.Data.csproj" />
     <ProjectReference Include="..\OsintToolkit.Services\OsintToolkit.Services.csproj" />
     <ProjectReference Include="..\OsintToolkit.Modules\OsintToolkit.Modules.csproj" />
-    <ProjectReference Include="..\OsintToolkit.Gui\OsintToolkit.Gui.csproj" />
   </ItemGroup>
 
   <ItemGroup>
