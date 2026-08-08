@@ -1,0 +1,108 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+
+# Visual Studio
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.ncb
+*.sdf
+*.opensdf
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains Rider / ReSharper
+.idea/
+*.sln.iml
+_ReSharper*/
+*.[Rr]e[Ss]harper*
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# .NET generated files
+*.dll
+*.exe
+*.pdb
+*.cache
+*.tmp
+*.log
+
+# Test results
+TestResults/
+*.trx
+coverage/
+.coverage
+*.coveragexml
+
+# Publish output
+publish/
+[Pp]ublish/
+*.pubxml.user
+
+# ASP.NET / web development
+wwwroot/lib/
+
+# Entity Framework
+*.mdf
+*.ldf
+
+# Generated documentation
+*.xml
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+
+# Local configuration / secrets
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# Azure
+.azure/
+
+# Docker
+docker-compose.override.yml
+
+# BenchmarkDotNet
+BenchmarkDotNet.Artifacts/
+
+# dotnet tools
+.dotnet/
+
+# Local history
+.history/
+
+# Generated source
+Generated/
+GeneratedCode/
