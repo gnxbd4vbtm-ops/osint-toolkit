@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/OsintToolkit.CLI/OsintToolkit.CLI.csproj" />
+    <Project Path="src/OsintToolkit.Core/OsintToolkit.Core.csproj" />
+    <Project Path="src/OsintToolkit.Data/OsintToolkit.Data.csproj" />
+    <Project Path="src/OsintToolkit.Modules/OsintToolkit.Modules.csproj" />
+    <Project Path="src/OsintToolkit.Services/OsintToolkit.Services.csproj" />
+    <Project Path="src/OsintToolkit.WPF/OsintToolkit.WPF.csproj" />
+  </Folder>
+</Solution>

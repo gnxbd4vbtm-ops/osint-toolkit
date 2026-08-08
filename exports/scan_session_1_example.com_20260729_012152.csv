@@ -1,0 +1,2 @@
+ResultId,SessionId,Target,ModuleName,Title,Severity,Summary,Timestamp
+1,1,"example.com","DomainInfo","Domain Reconnaissance: example.com","Info","Resolved domain 'example.com' with active A/AAAA/MX records and valid WHOIS registration.","2026-07-29T01:19:26.6897278"

@@ -1,0 +1,12 @@
+{
+  "DatabasePath": "osint_toolkit.db",
+  "DefaultExportFormat": "html",
+  "LogLevel": "Information",
+  "MaxConcurrentModules": 4,
+  "Theme": "System",
+  "ApiKeys": {
+    "Shodan": "YOUR_SHODAN_API_KEY",
+    "VirusTotal": "YOUR_VIRUSTOTAL_API_KEY",
+    "HunterIo": "YOUR_HUNTER_API_KEY"
+  }
+}

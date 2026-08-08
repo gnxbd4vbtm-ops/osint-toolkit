@@ -1,0 +1,26 @@
+{
+  "SessionId": 1,
+  "Target": {
+    "Id": 1,
+    "Value": "example.com",
+    "Type": "Domain",
+    "Description": "CLI direct scan target"
+  },
+  "Status": "Completed",
+  "StartedAt": "2026-07-29T01:19:25.8278248",
+  "CompletedAt": "2026-07-29T01:19:26.7268081",
+  "Notes": "Scan for example.com [Domain]",
+  "ResultsCount": 1,
+  "Results": [
+    {
+      "Id": 1,
+      "ScanSessionId": 1,
+      "ModuleName": "DomainInfo",
+      "Title": "Domain Reconnaissance: example.com",
+      "Summary": "Resolved domain \u0027example.com\u0027 with active A/AAAA/MX records and valid WHOIS registration.",
+      "RawDataJson": "{\n  \u0022Domain\u0022: \u0022example.com\u0022,\n  \u0022DnsRecords\u0022: {\n    \u0022A\u0022: [\n      \u002293.184.216.34\u0022\n    ],\n    \u0022AAAA\u0022: [\n      \u00222606:2800:220:1:248:1893:25c8:1946\u0022\n    ],\n    \u0022MX\u0022: [\n      \u002210 mail.spamexample.com\u0022\n    ],\n    \u0022NS\u0022: [\n      \u0022ns1.exampledns.net\u0022,\n      \u0022ns2.exampledns.net\u0022\n    ],\n    \u0022TXT\u0022: [\n      \u0022v=spf1 include:_spf.example.com ~all\u0022\n    ]\n  },\n  \u0022WhoisInfo\u0022: {\n    \u0022Registrar\u0022: \u0022ExampleRegistrar LLC\u0022,\n    \u0022CreatedDate\u0022: \u00222015-04-12\u0022,\n    \u0022ExpiryDate\u0022: \u00222028-04-12\u0022,\n    \u0022NameServers\u0022: [\n      \u0022ns1.exampledns.net\u0022,\n      \u0022ns2.exampledns.net\u0022\n    ],\n    \u0022PrivacyEnabled\u0022: true\n  },\n  \u0022SslValid\u0022: true,\n  \u0022SslIssuer\u0022: \u0022Let\\u0027s Encrypt Authority X3\u0022\n}",
+      "Severity": 0,
+      "Timestamp": "2026-07-29T01:19:26.6897278"
+    }
+  ]
+}
