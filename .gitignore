@@ -110,4 +110,6 @@ GeneratedCode/
 
 exports/
 
-.db
+osint_toolkit.db
+*.db
+*.db*

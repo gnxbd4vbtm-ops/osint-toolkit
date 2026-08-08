@@ -7,6 +7,7 @@ using OsintToolkit.CLI.UI;
 using OsintToolkit.Core.Enums;
 using OsintToolkit.Core.Interfaces;
 using OsintToolkit.Core.Models;
+using OsintToolkit.Gui;
 
 namespace OsintToolkit.CLI.Commands;
 
@@ -37,6 +38,32 @@ public class CommandHandler
         _moduleRegistry = moduleRegistry;
         _exportService = exportService;
         _configService = configService; _nmapOptions = nmapOptions; _localNetworkDiscovery = localNetworkDiscovery;
+    }
+
+    private void LaunchGui()
+    {
+        try
+        {
+            var exeName = "OsintToolkit.Gui.dll";
+            var baseDir = AppContext.BaseDirectory;
+            var guiPath = System.IO.Path.Combine(baseDir, exeName);
+            if (!System.IO.File.Exists(guiPath))
+            {
+                ConsoleRenderer.RenderWarning($"GUI assembly not found at '{guiPath}'. Build the solution first.");
+                return;
+            }
+
+            var psi = new System.Diagnostics.ProcessStartInfo("dotnet", '"' + guiPath + '"')
+            {
+                UseShellExecute = false,
+            };
+            System.Diagnostics.Process.Start(psi);
+            ConsoleRenderer.RenderInfo("Launched GUI process.");
+        }
+        catch (Exception ex)
+        {
+            ConsoleRenderer.RenderError($"Failed to start GUI process: {ex.Message}");
+        }
     }
 
     public async Task<bool> ProcessArgsAsync(string[] args)
@@ -77,6 +104,12 @@ public class CommandHandler
 
             case "config":
                 ShowConfig();
+                return true;
+
+            case "gui":
+            case "--gui":
+            case "-g":
+                LaunchGui();
                 return true;
 
             case "arp":
