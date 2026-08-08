@@ -422,6 +422,23 @@ public class ExportService : IExportService
                         `);
                     }
 
+                    if (data.BreachDetails && Array.isArray(data.BreachDetails)) {
+                        sections.push(`
+                            <div class="detail-section">
+                                <h4>Breach Exposure</h4>
+                                ${data.BreachDetails.length
+                                    ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Title</th><th>Date</th><th>Compromised Data</th></tr></thead><tbody>${data.BreachDetails.map(breach => `
+                                        <tr>
+                                            <td>${escapeHtml(breach.Title || 'Unknown')}</td>
+                                            <td>${escapeHtml(breach.Date || 'Unknown')}</td>
+                                            <td>${escapeHtml((breach.CompromisedData || []).join(', ') || 'Not listed')}</td>
+                                        </tr>
+                                    `).join('')}</tbody></table></div>`
+                                    : `<div class="detail-value">${escapeHtml(data.BreachSummary || 'No public breach records were discovered in the current offline analysis.')}</div>`}
+                            </div>
+                        `);
+                    }
+
                     if (data.DnsRecords && typeof data.DnsRecords === 'object') {
                         const dnsEntries = Object.entries(data.DnsRecords).filter(([, value]) => Array.isArray(value) && value.length);
                         if (dnsEntries.length) {
@@ -494,7 +511,7 @@ public class ExportService : IExportService
                         `);
                     }
 
-                    const otherEntries = Object.entries(data).filter(([key]) => !['GeoLocation', 'ExposedServices', 'DnsRecords', 'WhoisInfo', 'SslValid', 'SslIssuer'].includes(key));
+                    const otherEntries = Object.entries(data).filter(([key]) => !['GeoLocation', 'ExposedServices', 'DnsRecords', 'WhoisInfo', 'SslValid', 'SslIssuer', 'BreachDetails', 'BreachSummary', 'LookupStatus'].includes(key));
                     if (otherEntries.length) {
                         sections.push(renderGenericObject(Object.fromEntries(otherEntries), 'Additional Context'));
                     }

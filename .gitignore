@@ -113,3 +113,5 @@ exports/
 osint_toolkit.db
 *.db
 *.db*
+
+clean.fish
