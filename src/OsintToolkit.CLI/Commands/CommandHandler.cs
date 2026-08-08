@@ -7,8 +7,6 @@ using OsintToolkit.CLI.UI;
 using OsintToolkit.Core.Enums;
 using OsintToolkit.Core.Interfaces;
 using OsintToolkit.Core.Models;
-using OsintToolkit.Gui;
-
 namespace OsintToolkit.CLI.Commands;
 
 /// <summary>

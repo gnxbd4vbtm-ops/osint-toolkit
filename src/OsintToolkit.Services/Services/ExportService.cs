@@ -235,15 +235,53 @@ public class ExportService : IExportService
                 
                 .finding-body { padding: 20px; }
                 .summary { font-size: 15px; line-height: 1.6; margin-bottom: 20px; }
-
-                .remediation-box {
-                    background: rgba(63, 185, 80, 0.1);
-                    border: 1px solid var(--success);
+                .structured-data { display: grid; gap: 16px; margin-bottom: 20px; }
+                .detail-section {
+                    background: rgba(255,255,255,0.03);
+                    border: 1px solid var(--border);
                     border-radius: 8px;
                     padding: 16px;
-                    margin-top: 16px;
                 }
-                .remediation-box h4 { margin: 0 0 8px 0; color: var(--success); }
+                .detail-section h4 { margin: 0 0 12px 0; color: var(--text-heading); }
+                .detail-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                    gap: 12px;
+                }
+                .detail-item {
+                    background: rgba(255,255,255,0.04);
+                    border: 1px solid var(--border);
+                    border-radius: 8px;
+                    padding: 12px;
+                }
+                .detail-label {
+                    font-size: 12px;
+                    color: #8b949e;
+                    text-transform: uppercase;
+                    letter-spacing: 0.04em;
+                    margin-bottom: 6px;
+                }
+                .detail-value { font-size: 14px; color: var(--text-heading); line-height: 1.5; }
+                .list { margin: 0; padding-left: 18px; }
+                .list li { margin-bottom: 4px; }
+                .pill {
+                    display: inline-block;
+                    padding: 4px 10px;
+                    border-radius: 999px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    background: rgba(88, 166, 255, 0.16);
+                    color: var(--accent);
+                    border: 1px solid var(--accent);
+                }
+                .pill.success { background: rgba(63, 185, 80, 0.16); color: var(--success); border-color: var(--success); }
+                .pill.danger { background: rgba(248, 81, 73, 0.16); color: var(--danger); border-color: var(--danger); }
+                .pill.info { background: rgba(210, 153, 34, 0.16); color: var(--warning); border-color: var(--warning); }
+                .table-wrap { overflow-x: auto; }
+                .data-table { width: 100%; border-collapse: collapse; }
+                .data-table th, .data-table td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+                .data-table th { color: #8b949e; font-size: 12px; text-transform: uppercase; }
+                .muted { color: #8b949e; }
 
                 pre {
                     background: #090d11;
@@ -288,6 +326,182 @@ public class ExportService : IExportService
                 const sessionData = {{sessionJson}};
                 const container = document.getElementById('findings-container');
 
+                const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[char]));
+
+                const formatValue = (value) => {
+                    if (value === null || value === undefined || value === '') return 'Not available';
+                    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+                    if (typeof value === 'number') return Number.isFinite(value) ? value.toLocaleString() : String(value);
+                    return String(value);
+                };
+
+                const renderGenericObject = (data, title) => {
+                    if (!data || typeof data !== 'object' || Array.isArray(data)) return '';
+                    const entries = Object.entries(data).filter(([, value]) => value !== null && value !== undefined && value !== '');
+                    if (!entries.length) return '';
+
+                    return `
+                        <div class="detail-section">
+                            <h4>${escapeHtml(title)}</h4>
+                            <div class="detail-grid">
+                                ${entries.map(([key, value]) => `
+                                    <div class="detail-item">
+                                        <div class="detail-label">${escapeHtml(key)}</div>
+                                        <div class="detail-value">${escapeHtml(formatValue(value))}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                };
+
+                const renderStructuredData = (data) => {
+                    if (!data || typeof data !== 'object') return '';
+
+                    const sections = [];
+
+                    if (data.GeoLocation && typeof data.GeoLocation === 'object') {
+                        const geo = data.GeoLocation;
+                        const items = [
+                            ['IP', geo.Ip],
+                            ['Country', geo.Country],
+                            ['Country Code', geo.CountryCode],
+                            ['Region', geo.Region],
+                            ['City', geo.City],
+                            ['Latitude', geo.Latitude],
+                            ['Longitude', geo.Longitude],
+                            ['ISP', geo.Isp],
+                            ['ASN', geo.Asn],
+                            ['Organization', geo.Organization]
+                        ].filter(([, value]) => value !== null && value !== undefined && value !== '');
+
+                        if (items.length) {
+                            sections.push(`
+                                <div class="detail-section">
+                                    <h4>Geo Location</h4>
+                                    <div class="detail-grid">
+                                        ${items.map(([label, value]) => `
+                                            <div class="detail-item">
+                                                <div class="detail-label">${escapeHtml(label)}</div>
+                                                <div class="detail-value">${escapeHtml(formatValue(value))}</div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `);
+                        }
+                    }
+
+                    if (data.ExposedServices && Array.isArray(data.ExposedServices) && data.ExposedServices.length) {
+                        sections.push(`
+                            <div class="detail-section">
+                                <h4>Exposed Services</h4>
+                                <div class="table-wrap">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr><th>Port</th><th>Service</th><th>State</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            ${data.ExposedServices.map(service => `
+                                                <tr>
+                                                    <td>${escapeHtml(service.Port ?? '—')}</td>
+                                                    <td>${escapeHtml(service.Service ?? '—')}</td>
+                                                    <td><span class="pill ${String(service.State || '').toLowerCase() === 'open' ? 'success' : 'info'}">${escapeHtml(service.State ?? 'Unknown')}</span></td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        `);
+                    }
+
+                    if (data.DnsRecords && typeof data.DnsRecords === 'object') {
+                        const dnsEntries = Object.entries(data.DnsRecords).filter(([, value]) => Array.isArray(value) && value.length);
+                        if (dnsEntries.length) {
+                            sections.push(`
+                                <div class="detail-section">
+                                    <h4>DNS Records</h4>
+                                    <div class="detail-grid">
+                                        ${dnsEntries.map(([recordType, values]) => `
+                                            <div class="detail-item">
+                                                <div class="detail-label">${escapeHtml(recordType)}</div>
+                                                <div class="detail-value">
+                                                    <ul class="list">
+                                                        ${values.map(value => `<li>${escapeHtml(formatValue(value))}</li>`).join('')}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `);
+                        }
+                    }
+
+                    if (data.WhoisInfo && typeof data.WhoisInfo === 'object') {
+                        const whois = data.WhoisInfo;
+                        const items = [
+                            ['Registrar', whois.Registrar],
+                            ['Created Date', whois.CreatedDate],
+                            ['Expiry Date', whois.ExpiryDate],
+                            ['Name Servers', whois.NameServers],
+                            ['Privacy Enabled', whois.PrivacyEnabled]
+                        ].filter(([, value]) => value !== null && value !== undefined && value !== '' && !(Array.isArray(value) && !value.length));
+
+                        if (items.length) {
+                            sections.push(`
+                                <div class="detail-section">
+                                    <h4>WHOIS / RDAP</h4>
+                                    <div class="detail-grid">
+                                        ${items.map(([label, value]) => `
+                                            <div class="detail-item">
+                                                <div class="detail-label">${escapeHtml(label)}</div>
+                                                <div class="detail-value">
+                                                    ${Array.isArray(value)
+                                                        ? `<ul class="list">${value.map(item => `<li>${escapeHtml(formatValue(item))}</li>`).join('')}</ul>`
+                                                        : escapeHtml(formatValue(value))}
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `);
+                        }
+                    }
+
+                    if (data.SslValid !== undefined || data.SslIssuer) {
+                        sections.push(`
+                            <div class="detail-section">
+                                <h4>SSL Certificate</h4>
+                                <div class="detail-grid">
+                                    <div class="detail-item">
+                                        <div class="detail-label">Valid</div>
+                                        <div class="detail-value"><span class="pill ${data.SslValid ? 'success' : 'danger'}">${data.SslValid ? 'Yes' : 'No'}</span></div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <div class="detail-label">Issuer</div>
+                                        <div class="detail-value">${escapeHtml(data.SslIssuer || 'Not available')}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `);
+                    }
+
+                    const otherEntries = Object.entries(data).filter(([key]) => !['GeoLocation', 'ExposedServices', 'DnsRecords', 'WhoisInfo', 'SslValid', 'SslIssuer'].includes(key));
+                    if (otherEntries.length) {
+                        sections.push(renderGenericObject(Object.fromEntries(otherEntries), 'Additional Context'));
+                    }
+
+                    return sections.join('');
+                };
+
                 if (!sessionData.Results || sessionData.Results.length === 0) {
                     container.innerHTML = '<p>No findings recorded in this scan session.</p>';
                 } else {
@@ -296,32 +510,20 @@ public class ExportService : IExportService
                         card.className = 'finding-card';
 
                         let parsedData = {};
-                        try { parsedData = JSON.parse(result.RawDataJson); } catch(e){}
+                        try { parsedData = JSON.parse(result.RawDataJson); } catch (e) {}
 
-                        let remediationHtml = '';
-                        if (parsedData.BreachesCount && parsedData.BreachesCount > 0) {
-                            remediationHtml = `
-                                <div class="remediation-box">
-                                    <h4>🛡️ Recommended Defense Guidance</h4>
-                                    <ul>
-                                        <li>Immediately change passwords on accounts associated with this email address.</li>
-                                        <li>Enable Multi-Factor Authentication (MFA / 2FA) across all services.</li>
-                                        <li>Use an isolated, unique password generator/manager for every service.</li>
-                                    </ul>
-                                </div>
-                            `;
-                        }
+                        const structuredHtml = renderStructuredData(parsedData);
 
                         card.innerHTML = `
                             <div class="finding-header">
-                                <div class="finding-title">${result.Title}</div>
-                                <span class="badge badge-${(result.Severity || 'info').toLowerCase()}">${result.Severity}</span>
+                                <div class="finding-title">${escapeHtml(result.Title)}</div>
+                                <span class="badge badge-${(result.Severity || 'info').toLowerCase()}">${escapeHtml(result.Severity)}</span>
                             </div>
                             <div class="finding-body">
-                                <div class="summary">${result.Summary}</div>
-                                ${remediationHtml}
-                                <h4>Structured Finding Metadata</h4>
-                                <pre><code>${JSON.stringify(parsedData, null, 2)}</code></pre>
+                                <div class="summary">${escapeHtml(result.Summary)}</div>
+                                ${structuredHtml ? `<div class="structured-data">${structuredHtml}</div>` : ''}
+                                <h4>Raw Payload</h4>
+                                <pre><code>${escapeHtml(JSON.stringify(parsedData, null, 2))}</code></pre>
                             </div>
                         `;
                         container.appendChild(card);
