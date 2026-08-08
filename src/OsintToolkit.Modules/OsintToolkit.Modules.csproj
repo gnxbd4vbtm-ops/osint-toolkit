@@ -4,6 +4,10 @@
     <ProjectReference Include="..\OsintToolkit.Core\OsintToolkit.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="DnsClient" Version="1.6.6" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

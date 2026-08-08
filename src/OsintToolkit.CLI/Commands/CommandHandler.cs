@@ -108,7 +108,7 @@ public class CommandHandler
         table.AddRow("modules", "List all registered OSINT modules");
         table.AddRow("targets", "List all targets saved in database");
         table.AddRow("scan --target <val> [--type <type>] [--nmap-profile <profile>]", "Run an OSINT scan; Nmap profiles: Discovery, Quick, Standard, FullTcp");
-        table.AddRow("export --session <id> [--format <json|csv|md>]", "Export a scan session to file");
+        table.AddRow("export --session <id> [--format <json|csv|md|html>]", "Export a scan session to file");
         table.AddRow("config", "View current toolkit settings");
         table.AddRow("arp hosts --localnet [--resolve]", "List local ARP/neighbor-table hosts; optionally reverse-resolve names");
 

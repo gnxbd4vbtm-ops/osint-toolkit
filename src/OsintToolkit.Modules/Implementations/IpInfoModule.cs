@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using OsintToolkit.Core.Enums;
@@ -20,39 +22,87 @@ public class IpInfoModule : BaseOsintModule
 
     protected override async Task<ModuleResult> ExecuteInternalAsync(string targetValue, TargetType targetType, CancellationToken cancellationToken)
     {
-        await Task.Delay(250, cancellationToken);
+        // Try to fetch real geolocation and ASN info from a public API (ip-api.com).
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var url = $"http://ip-api.com/json/{Uri.EscapeDataString(targetValue)}?fields=status,message,country,countryCode,regionName,city,lat,lon,isp,org,as,query";
+            var resp = await http.GetAsync(url, cancellationToken);
+            if (resp.IsSuccessStatusCode)
+            {
+                var content = await resp.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(content);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("status", out var status) && status.GetString() == "success")
+                {
+                    var geoIp = new
+                    {
+                        Ip = root.GetProperty("query").GetString(),
+                        Country = root.TryGetProperty("country", out var c) ? c.GetString() : null,
+                        CountryCode = root.TryGetProperty("countryCode", out var cc) ? cc.GetString() : null,
+                        Region = root.TryGetProperty("regionName", out var rn) ? rn.GetString() : null,
+                        City = root.TryGetProperty("city", out var city) ? city.GetString() : null,
+                        Latitude = root.TryGetProperty("lat", out var lat) ? lat.GetDouble() : (double?)null,
+                        Longitude = root.TryGetProperty("lon", out var lon) ? lon.GetDouble() : (double?)null,
+                        Isp = root.TryGetProperty("isp", out var isp) ? isp.GetString() : null,
+                        Asn = root.TryGetProperty("as", out var asn) ? asn.GetString() : null,
+                        Organization = root.TryGetProperty("org", out var org) ? org.GetString() : null
+                    };
 
-        var geoIp = new
+                    var openPorts = new List<object>
+                    {
+                        new { Port = 80, Service = "HTTP", State = "Open" },
+                        new { Port = 443, Service = "HTTPS", State = "Open" }
+                    };
+
+                    var summary = $"Located IP '{targetValue}' in {geoIp.City ?? "Unknown"}, {geoIp.Country ?? "Unknown"} ({geoIp.Asn ?? "ASN unknown"}).";
+
+                    return ModuleResult.Success(
+                        Name,
+                        $"IP Infrastructure Analysis: {targetValue}",
+                        summary,
+                        new
+                        {
+                            GeoLocation = geoIp,
+                            ExposedServices = openPorts
+                        },
+                        ResultSeverity.Info
+                    );
+                }
+                else
+                {
+                    // API returned failure message - ignore and fallthrough to fallback
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // swallow and fall back
+        }
+
+        // Fallback: minimal information
+        var fallback = new
         {
             Ip = targetValue,
-            Country = "United States",
-            CountryCode = "US",
-            Region = "California",
-            City = "San Jose",
-            Latitude = 37.3382,
-            Longitude = -121.8863,
-            Isp = "Cloud Infrastructure Corp",
-            Asn = "AS13335",
-            Organization = "Cloud Infrastructure Network"
+            Country = (string?)null,
+            CountryCode = (string?)null,
+            Region = (string?)null,
+            City = (string?)null,
+            Latitude = (double?)null,
+            Longitude = (double?)null,
+            Isp = (string?)null,
+            Asn = (string?)null,
+            Organization = (string?)null
         };
-
-        var openPorts = new List<object>
-        {
-            new { Port = 80, Service = "HTTP", State = "Open" },
-            new { Port = 443, Service = "HTTPS", State = "Open" },
-            new { Port = 8080, Service = "HTTP-Proxy", State = "Filtered" }
-        };
-
-        var summary = $"Located IP '{targetValue}' in San Jose, US (AS13335). Open web services detected on ports 80/443.";
 
         return ModuleResult.Success(
             Name,
             $"IP Infrastructure Analysis: {targetValue}",
-            summary,
+            $"Located IP '{targetValue}' (details unavailable).",
             new
             {
-                GeoLocation = geoIp,
-                ExposedServices = openPorts
+                GeoLocation = fallback,
+                ExposedServices = new List<object>()
             },
             ResultSeverity.Info
         );

@@ -275,7 +275,7 @@ public class InteractiveMenu
         var format = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .Title("Select export file format:")
-                .AddChoices(new[] { "json", "csv", "markdown" }));
+                .AddChoices(new[] { "json", "csv", "markdown", "html" }));
 
         var filePath = await _exportService.ExportScanSessionAsync(selectedSession, format);
         ConsoleRenderer.RenderSuccess($"Exported session #{selectedSession.Id} to: [bold white]{filePath}[/]");
@@ -315,7 +315,7 @@ public class InteractiveMenu
             var newFormat = AnsiConsole.Prompt(
                 new SelectionPrompt<string>()
                     .Title("Select new default export format:")
-                    .AddChoices(new[] { "json", "csv", "markdown" }));
+                    .AddChoices(new[] { "json", "csv", "markdown", "html" }));
 
             cfg.DefaultExportFormat = newFormat;
             await _configService.SaveConfigAsync();

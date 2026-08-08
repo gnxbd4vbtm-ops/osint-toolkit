@@ -15,8 +15,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 <ItemGroup>
-  <None Update="Utilities\tlds-alpha-by-domain.txt">
+  <None Update="Utilities/tlds-alpha-by-domain.txt">
     <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <CopyToPublishDirectory>Always</CopyToPublishDirectory>
   </None>
 </ItemGroup>
 </Project>

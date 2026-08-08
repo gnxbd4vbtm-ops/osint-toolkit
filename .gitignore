@@ -106,3 +106,8 @@ BenchmarkDotNet.Artifacts/
 # Generated source
 Generated/
 GeneratedCode/
+
+
+exports/
+
+.db
