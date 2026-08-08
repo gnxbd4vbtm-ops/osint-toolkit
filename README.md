@@ -1,158 +1,215 @@
 # C# OSINT Toolkit CLI Framework
 
-A modular, extensible Open Source Intelligence (OSINT) command-line framework built with C# and .NET 10. Designed with Clean Architecture principles to simplify adding new intelligence gathering tools, tracking targets, persisting scan session findings to SQLite, and exporting reports.
+A modular and extensible Open Source Intelligence (OSINT) command-line framework built with C# and .NET 10. The toolkit is designed around Clean Architecture and provides a structured way to add intelligence-gathering modules, manage targets, store scan results in SQLite, and export reports.
 
----
+## Key Features
 
-## 🌟 Key Features
+* **Clean Architecture**: Separates the project into Domain Core (`OsintToolkit.Core`), Data (`OsintToolkit.Data`), Services (`OsintToolkit.Services`), Modules (`OsintToolkit.Modules`), and CLI (`OsintToolkit.CLI`).
+* **Target Management**: Supports multiple target types:
 
-* **Clean Architecture Layout**: Strict separation of concerns between Domain Core (`OsintToolkit.Core`), Data Layer (`OsintToolkit.Data`), Business Services (`OsintToolkit.Services`), Modules Engine (`OsintToolkit.Modules`), and Console CLI (`OsintToolkit.CLI`).
-* **Target Management**: Supports tracking and auto-detecting multiple target types:
-  * 👤 `Username`
-  * 🌐 `Domain`
-  * 📡 `IpAddress`
-  * 📧 `Email`
-  * 🧑 `Person`
-* **Plugin / Module Architecture**: Standardized `IOsintModule` contract for self-registering OSINT gatherers.
-* **SQLite Persistence**: Entity Framework Core SQLite database storing targets, scan execution history, and standardized findings.
-* **Multi-Format Export Engine**: Generates formatted report output in `JSON`, `CSV`, and `Markdown` (`.md`) formats.
-* **Rich Terminal UI**: Built with `Spectre.Console` featuring ASCII banner, interactive prompts, colorized status badges, progress indicators, and formatted tables.
-* **Dual Operation Modes**:
-  * **Interactive Mode**: Guided terminal navigation menu.
-  * **Direct Command Mode**: Scriptable execution via command flags (`--target`, `--type`, `--session`, `--format`).
-* **Configuration Management**: Persistent `config.json` supporting API key placeholders, log levels, and export defaults.
+  * `Username`
+  * `Domain`
+  * `IpAddress`
+  * `Email`
+  * `Person`
+* **Module System**: Uses a standardized `IOsintModule` interface for adding new OSINT tools.
+* **SQLite Persistence**: Uses Entity Framework Core with SQLite to store targets, scan sessions, and findings.
+* **Report Export**: Export scan results as `JSON`, `CSV`, or `Markdown`.
+* **Terminal UI**: Uses `Spectre.Console` for interactive menus, status output, progress indicators, and tables.
+* **Two Operation Modes**:
 
----
+  * **Interactive Mode**: Navigate the toolkit through a terminal menu.
+  * **Direct Command Mode**: Run commands directly using options such as `--target`, `--type`, `--session`, and `--format`.
+* **Configuration**: Stores application settings in `config.json`, including API key placeholders, logging settings, and export defaults.
 
-## 📁 Project Structure
+## Project Structure
 
-```
+```text
 OsintToolkit/
 ├── OsintToolkit.sln
 ├── src/
-│   ├── OsintToolkit.Core/             # Models, Enums, Module & Service Interfaces
-│   │   ├── Enums/ (TargetType, ScanStatus, ResultSeverity)
-│   │   ├── Interfaces/ (IOsintModule, IModuleRegistry, ITargetService, etc.)
-│   │   └── Models/ (Target, ScanSession, ScanResult, AppConfig, ModuleResult)
-│   ├── OsintToolkit.Data/             # Entity Framework Core DbContext & SQLite Schema
-│   │   └── Context/ (OsintDbContext)
-│   ├── OsintToolkit.Services/         # Business Logic & Infrastructure
-│   │   ├── Services/ (TargetService, ScanSessionService, ExportService, ConfigService, ModuleRegistry)
-│   │   └── Utilities/ (TargetValidator)
-│   ├── OsintToolkit.Modules/          # Extensible OSINT Tool Plugins
-│   │   ├── Base/ (BaseOsintModule)
+│   ├── OsintToolkit.Core/             # Models, enums, and interfaces
+│   │   ├── Enums/                     # TargetType, ScanStatus, ResultSeverity
+│   │   ├── Interfaces/                # Module and service interfaces
+│   │   └── Models/                    # Target, ScanSession, ScanResult, etc.
+│   │
+│   ├── OsintToolkit.Data/             # EF Core and SQLite
+│   │   └── Context/
+│   │       └── OsintDbContext.cs
+│   │
+│   ├── OsintToolkit.Services/         # Business logic and infrastructure
+│   │   ├── Services/                  # Target, scan, export, config, module services
+│   │   └── Utilities/                 # Target validation
+│   │
+│   ├── OsintToolkit.Modules/          # OSINT modules
+│   │   ├── Base/
+│   │   │   └── BaseOsintModule.cs
 │   │   └── Implementations/
 │   │       ├── UsernameLookupModule.cs
 │   │       ├── DomainInfoModule.cs
 │   │       ├── IpInfoModule.cs
 │   │       └── EmailInfoModule.cs
-│   └── OsintToolkit.CLI/              # Terminal Interface & Command Handlers
+│   │
+│   └── OsintToolkit.CLI/              # Command-line interface
 │       ├── Program.cs
-│       ├── UI/ (Banner, ConsoleRenderer, InteractiveMenu)
-│       ├── Commands/ (AppInfo, CommandHandler)
+│       ├── UI/
+│       ├── Commands/
 │       └── appsettings.json
-├── exports/                           # Generated report output directory
-├── config.json                        # Application settings file
+│
+├── exports/                           # Generated reports
+├── config.json                        # Application configuration
 └── README.md
 ```
 
----
-
-## 🚀 Quick Setup & Execution Instructions
+## Setup
 
 ### Prerequisites
-* [.NET 8, 9, or 10 SDK](https://dotnet.microsoft.com/download) installed.
 
-### 1. Build the Solution
+* [.NET 8, 9, or 10 SDK](https://dotnet.microsoft.com/download)
+* `nmap` is required if you want to use the Nmap integration.
+
+### Build
+
+Clone the repository, then build the solution:
+
 ```bash
 dotnet build
 ```
 
-### 2. Run Interactive Mode
-Launch the application with no parameters to open the Spectre.Console interactive menu:
+### Run Interactive Mode
+
+Run the CLI without any arguments to open the interactive menu:
+
 ```bash
 dotnet run --project src/OsintToolkit.CLI
 ```
 
-### Run the Linux GUI (KDE Wayland / CachyOS)
+### Run the Linux GUI
+
+The project also includes an Avalonia-based GUI:
+
 ```bash
 dotnet run --project src/OsintToolkit.WPF
 ```
 
-The GUI uses Avalonia's stable Linux desktop backend by default (works on KDE
-Wayland through XWayland). To opt in to its experimental native Wayland backend:
-`OSINT_NATIVE_WAYLAND=1 dotnet run --project src/OsintToolkit.WPF`.
+The GUI uses Avalonia's stable Linux desktop backend by default and works on KDE Wayland through XWayland.
 
-### 3. Run Direct Commands (Non-Interactive / Scripting)
+To opt in to the experimental native Wayland backend:
 
-* **Display Version & Info**:
-  ```bash
-  dotnet run --project src/OsintToolkit.CLI -- --version
-  ```
+```bash
+OSINT_NATIVE_WAYLAND=1 dotnet run --project src/OsintToolkit.WPF
+```
 
-* **Display Help**:
-  ```bash
-  dotnet run --project src/OsintToolkit.CLI -- --help
-  ```
+## CLI Usage
 
-* **List Registered Modules**:
-  ```bash
-  dotnet run --project src/OsintToolkit.CLI -- modules
-  ```
+### Version
 
-* **List Saved Targets**:
-  ```bash
-  dotnet run --project src/OsintToolkit.CLI -- targets
-  ```
+```bash
+dotnet run --project src/OsintToolkit.CLI -- --version
+```
 
-* **Run an OSINT Scan on a Domain**:
-  ```bash
+### Help
+
+```bash
+dotnet run --project src/OsintToolkit.CLI -- --help
+```
+
+### List Registered Modules
+
+```bash
+dotnet run --project src/OsintToolkit.CLI -- modules
+```
+
+### List Saved Targets
+
+```bash
+dotnet run --project src/OsintToolkit.CLI -- targets
+```
+
+### Run an OSINT Scan
+
+For example, to scan a domain:
+
+```bash
 dotnet run --project src/OsintToolkit.CLI -- scan --target example.com --type Domain
 ```
 
-* **Run an Authorized Nmap Scan** (requires local `nmap`):
-```bash
-# Host discovery only
-dotnet run --project src/OsintToolkit.CLI -- scan --target 192.0.2.10 --type IpAddress --nmap-profile Discovery
+The target type can also be detected automatically:
 
-# Service/version scan of the top 100 ports
+```bash
+dotnet run --project src/OsintToolkit.CLI -- scan --target user123
+dotnet run --project src/OsintToolkit.CLI -- scan --target 8.8.8.8
+dotnet run --project src/OsintToolkit.CLI -- scan --target user@domain.com
+```
+
+### Nmap Integration
+
+Authorized Nmap scans can be run when `nmap` is installed locally.
+
+Host discovery:
+
+```bash
+dotnet run --project src/OsintToolkit.CLI -- scan --target 192.0.2.10 --type IpAddress --nmap-profile Discovery
+```
+
+Service and version scan of the top 100 ports:
+
+```bash
 dotnet run --project src/OsintToolkit.CLI -- scan --target example.com --type Domain --nmap-profile Quick
 ```
 
-Available profiles are `Discovery`, `Quick`, `Standard` (top 1000 TCP ports), and
-`FullTcp` (all TCP ports). Only scan systems you are authorized to assess.
+Available profiles:
 
-* **Inspect hosts already present on the local network ARP table**:
+* `Discovery`
+* `Quick`
+* `Standard` - top 1000 TCP ports
+* `FullTcp` - all TCP ports
+
+Only use the Nmap functionality against systems you are authorized to assess.
+
+### Inspect Local ARP Hosts
+
+The toolkit can inspect IPv4 neighbors already present in the local ARP table:
+
 ```bash
 dotnet run --project src/OsintToolkit.CLI -- arp hosts --localnet --resolve
 ```
-This command does not scan a subnet; it lists IPv4 neighbors your Linux host has
-already observed and optionally performs reverse DNS lookups.
 
-* **Run an OSINT Scan with Target Type Auto-Detection**:
-  ```bash
-  dotnet run --project src/OsintToolkit.CLI -- scan --target user123
-  dotnet run --project src/OsintToolkit.CLI -- scan --target 8.8.8.8
-  dotnet run --project src/OsintToolkit.CLI -- scan --target user@domain.com
-  ```
+This does not scan the subnet. It only lists hosts that the Linux system has already observed and can optionally perform reverse DNS lookups.
 
-* **Export Scan Session Results**:
-  ```bash
-  dotnet run --project src/OsintToolkit.CLI -- export --session 1 --format json
-  dotnet run --project src/OsintToolkit.CLI -- export --session 1 --format csv
-  dotnet run --project src/OsintToolkit.CLI -- export --session 1 --format markdown
-  ```
+### Export Scan Results
 
-* **View Configuration Settings**:
-  ```bash
-  dotnet run --project src/OsintToolkit.CLI -- config
-  ```
+Export a scan session as JSON:
 
----
+```bash
+dotnet run --project src/OsintToolkit.CLI -- export --session 1 --format json
+```
 
-## 🧩 How to Create a New OSINT Module
+Export as CSV:
 
-To add a new tool to the toolkit (e.g. Shodan lookups, WHOIS scrapers, social media checkers), create a class in `OsintToolkit.Modules` that inherits from `BaseOsintModule`:
+```bash
+dotnet run --project src/OsintToolkit.CLI -- export --session 1 --format csv
+```
+
+Export as Markdown:
+
+```bash
+dotnet run --project src/OsintToolkit.CLI -- export --session 1 --format markdown
+```
+
+### View Configuration
+
+```bash
+dotnet run --project src/OsintToolkit.CLI -- config
+```
+
+## Creating a New OSINT Module
+
+The module system is designed so that additional tools can be added without changing the core application.
+
+For example, a new module could handle Shodan lookups, WHOIS queries, DNS enumeration, or other OSINT sources.
+
+Create a class in `OsintToolkit.Modules` that inherits from `BaseOsintModule`:
 
 ```csharp
 using System.Threading;
@@ -164,42 +221,88 @@ using OsintToolkit.Modules.Base;
 public class CustomOsintModule : BaseOsintModule
 {
     public override string Name => "CustomModule";
-    public override string Description => "Brief description of findings gathered by this module.";
-    public override string Category => "Custom Recon";
-    public override TargetType[] SupportedTypes => new[] { TargetType.Domain, TargetType.IpAddress };
+    public override string Description =>
+        "Brief description of the information gathered by this module.";
 
-    protected override async Task<ModuleResult> ExecuteInternalAsync(string targetValue, TargetType targetType, CancellationToken cancellationToken)
+    public override string Category => "Custom Recon";
+
+    public override TargetType[] SupportedTypes =>
+        new[] { TargetType.Domain, TargetType.IpAddress };
+
+    protected override async Task<ModuleResult> ExecuteInternalAsync(
+        string targetValue,
+        TargetType targetType,
+        CancellationToken cancellationToken)
     {
-        // 1. Implement API request, DNS lookup, or scraping logic here
+        // Implement API requests, DNS lookups, scraping, etc. here.
         await Task.Delay(100, cancellationToken);
 
-        // 2. Return standardized ModuleResult
         return ModuleResult.Success(
             Name,
             $"Custom Scan Result for {targetValue}",
             $"Gathered intelligence for target {targetValue}.",
-            new { CustomField = "Sample Intelligence Data" },
+            new
+            {
+                CustomField = "Sample Intelligence Data"
+            },
             ResultSeverity.Info
         );
     }
 }
 ```
 
-Then register the module in `Program.cs`:
+Register the module in `Program.cs`:
+
 ```csharp
 services.AddScoped<IOsintModule, CustomOsintModule>();
 ```
 
----
+Once registered, the module becomes available to the toolkit through the module registry.
 
-## 🛡️ Initial Placeholder Modules
+## Included Modules
 
-1. **`UsernameLookupModule`** (Target: `Username`, `Person`): Checks presence across developer and social media platforms.
-2. **`DomainInfoModule`** (Target: `Domain`): Gathers DNS records (A, AAAA, MX, TXT, NS), WHOIS registrar metadata, and SSL status.
-3. **`IpInfoModule`** (Target: `IpAddress`): Resolves IP geolocation, ASN information, ISP infrastructure, and open port highlights.
-4. **`EmailInfoModule`** (Target: `Email`): Performs email format validation, MX record reachability check, disposable domain detection, and breach flags.
+### UsernameLookupModule
 
----
+**Targets:** `Username`, `Person`
 
-## 📜 License
+Checks for the presence of a username across supported developer and social media platforms.
+
+### DomainInfoModule
+
+**Target:** `Domain`
+
+Collects domain information such as:
+
+* A and AAAA records
+* MX records
+* TXT records
+* NS records
+* WHOIS registrar information
+* SSL/TLS status
+
+### IpInfoModule
+
+**Target:** `IpAddress`
+
+Collects information such as:
+
+* IP geolocation
+* ASN information
+* ISP information
+* Infrastructure details
+* Open port highlights
+
+### EmailInfoModule
+
+**Target:** `Email`
+
+Performs checks including:
+
+* Email format validation
+* MX record validation
+* Disposable email domain detection
+* Available breach indicators
+
+## License
+
 MIT License.
