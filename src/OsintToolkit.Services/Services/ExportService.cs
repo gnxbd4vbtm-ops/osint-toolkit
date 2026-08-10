@@ -395,6 +395,18 @@ public class ExportService : IExportService
                     `;
                 };
 
+                const normalizeStructuredData = (value) => {
+                    if (!value) return {};
+                    if (typeof value === 'string') {
+                        try {
+                            return JSON.parse(value);
+                        } catch (e) {
+                            return {};
+                        }
+                    }
+                    return value;
+                };
+
                 const renderStructuredData = (data) => {
                     if (!data || typeof data !== 'object') return '';
 
@@ -585,9 +597,18 @@ public class ExportService : IExportService
                         card.className = 'finding-card';
 
                         let parsedData = {};
-                        try { parsedData = JSON.parse(result.RawDataJson); } catch (e) {}
+                        try {
+                            parsedData = JSON.parse(result.RawDataJson);
+                        } catch (e) {
+                            try {
+                                parsedData = normalizeStructuredData(result.RawDataJson);
+                            } catch (err) {
+                                parsedData = {};
+                            }
+                        }
 
-                        const structuredHtml = renderStructuredData(parsedData);
+                        const normalizedData = normalizeStructuredData(parsedData);
+                        const structuredHtml = renderStructuredData(normalizedData);
 
                         card.innerHTML = `
                             <div class="finding-header">
@@ -597,6 +618,7 @@ public class ExportService : IExportService
                             <div class="finding-body">
                                 <div class="summary">${escapeHtml(result.Summary)}</div>
                                 ${structuredHtml ? `<div class="structured-data">${structuredHtml}</div>` : ''}
+                                ${normalizedData.BreachDetails || normalizedData.BreachesCount !== undefined || normalizedData.BreachSummary || normalizedData.BreachSource ? `<div class="detail-section"><h4>Breach Exposure</h4><div class="detail-grid">${normalizedData.BreachesCount !== undefined ? `<div class="detail-item"><div class="detail-label">Count</div><div class="detail-value">${escapeHtml(formatValue(normalizedData.BreachesCount))}</div></div>` : ''}${normalizedData.BreachSummary ? `<div class="detail-item"><div class="detail-label">Summary</div><div class="detail-value">${escapeHtml(normalizedData.BreachSummary)}</div></div>` : ''}${normalizedData.BreachSource ? `<div class="detail-item"><div class="detail-label">Source</div><div class="detail-value">${escapeHtml(normalizedData.BreachSource)}</div></div>` : ''}</div></div>` : ''}
                                 <h4>Raw Payload</h4>
                                 <pre><code>${escapeHtml(JSON.stringify(parsedData, null, 2))}</code></pre>
                             </div>
