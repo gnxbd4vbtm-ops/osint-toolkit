@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -79,7 +81,26 @@ public class ExportService : IExportService
             session.CompletedAt,
             session.Notes,
             ResultsCount = session.Results.Count,
-            Results = session.Results
+            Results = session.Results.Select(result =>
+            {
+                var rawData = ParseRawData(result.RawDataJson);
+                var breachMetadata = ExtractBreachMetadata(rawData);
+                return new
+                {
+                    ResultId = result.Id,
+                    SessionId = result.ScanSessionId,
+                    ModuleName = result.ModuleName,
+                    Title = result.Title,
+                    Summary = result.Summary,
+                    Severity = result.Severity.ToString(),
+                    Timestamp = result.Timestamp,
+                    RawData = rawData,
+                    BreachesCount = breachMetadata.BreachesCount,
+                    BreachSummary = breachMetadata.BreachSummary,
+                    BreachSource = breachMetadata.BreachSource,
+                    BreachDetails = breachMetadata.BreachDetails
+                };
+            })
         };
 
         var options = new JsonSerializerOptions
@@ -94,15 +115,19 @@ public class ExportService : IExportService
     private static async Task ExportCsvAsync(ScanSession session, string filePath)
     {
         var sb = new StringBuilder();
-        sb.AppendLine("ResultId,SessionId,Target,ModuleName,Title,Severity,Summary,Timestamp");
+        sb.AppendLine("ResultId,SessionId,Target,ModuleName,Title,Severity,Summary,Timestamp,BreachesCount,BreachSummary,BreachSource,BreachDetails");
 
         foreach (var r in session.Results)
         {
             var targetValue = session.Target?.Value.Replace("\"", "\"\"") ?? "";
-            var title = r.Title.Replace("\"", "\"\"");
+            var title = r.Title.Replace("\"", "\"").Replace("\n", " ");
             var summary = r.Summary.Replace("\"", "\"\"").Replace("\n", " ");
+            var rawData = ParseRawData(r.RawDataJson);
+            var breachMetadata = ExtractBreachMetadata(rawData);
+            var breachSummary = (breachMetadata.BreachSummary ?? string.Empty).Replace("\"", "\"\"").Replace("\n", " ");
+            var breachDetails = JsonSerializer.Serialize(breachMetadata.BreachDetails ?? new object[0]).Replace("\"", "\"\"");
 
-            sb.AppendLine($"{r.Id},{session.Id},\"{targetValue}\",\"{r.ModuleName}\",\"{title}\",\"{r.Severity}\",\"{summary}\",\"{r.Timestamp:o}\"");
+            sb.AppendLine($"{r.Id},{session.Id},\"{targetValue}\",\"{r.ModuleName}\",\"{title}\",\"{r.Severity}\",\"{summary}\",\"{r.Timestamp:o}\",\"{breachMetadata.BreachesCount ?? 0}\",\"{breachSummary}\",\"{breachMetadata.BreachSource ?? string.Empty}\",\"{breachDetails}\"");
         }
 
         await File.WriteAllTextAsync(filePath, sb.ToString());
@@ -131,10 +156,19 @@ public class ExportService : IExportService
         {
             foreach (var r in session.Results)
             {
+                var rawData = ParseRawData(r.RawDataJson);
+                var breachMetadata = ExtractBreachMetadata(rawData);
+
                 sb.AppendLine($"### [{r.Severity}] {r.Title}");
                 sb.AppendLine($"* **Module:** `{r.ModuleName}`");
                 sb.AppendLine($"* **Timestamp:** {r.Timestamp:yyyy-MM-dd HH:mm:ss UTC}");
                 sb.AppendLine($"* **Summary:** {r.Summary}");
+                if (breachMetadata.BreachesCount > 0)
+                {
+                    sb.AppendLine($"* **Breaches Count:** {breachMetadata.BreachesCount}");
+                    sb.AppendLine($"* **Breach Summary:** {breachMetadata.BreachSummary}");
+                    sb.AppendLine($"* **Breach Source:** {breachMetadata.BreachSource}");
+                }
                 sb.AppendLine();
                 sb.AppendLine("```json");
                 sb.AppendLine(r.RawDataJson);
@@ -427,14 +461,38 @@ public class ExportService : IExportService
                             <div class="detail-section">
                                 <h4>Breach Exposure</h4>
                                 ${data.BreachDetails.length
-                                    ? `<div class="table-wrap"><table class="data-table"><thead><tr><th>Title</th><th>Date</th><th>Compromised Data</th></tr></thead><tbody>${data.BreachDetails.map(breach => `
-                                        <tr>
-                                            <td>${escapeHtml(breach.Title || 'Unknown')}</td>
-                                            <td>${escapeHtml(breach.Date || 'Unknown')}</td>
-                                            <td>${escapeHtml((breach.CompromisedData || []).join(', ') || 'Not listed')}</td>
-                                        </tr>
-                                    `).join('')}</tbody></table></div>`
+                                    ? `<div class="detail-grid">${data.BreachDetails.map(breach => {
+                                        const title = breach.Name || breach.Title || breach.Breach || 'Unknown';
+                                        const date = breach.BreachDate || breach.Date || breach.XposedDate || 'Unknown';
+                                        const domain = breach.Domain || breach.Source || 'Unknown';
+                                        const count = breach.PwnCount ?? breach.RecordCount ?? breach.Count;
+                                        const description = breach.Description || breach.Details || 'Not listed';
+                                        return `
+                                            <div class="detail-item">
+                                                <div class="detail-label">${escapeHtml(title)}</div>
+                                                <div class="detail-value">
+                                                    <div><strong>Domain:</strong> ${escapeHtml(domain)}</div>
+                                                    <div><strong>Date:</strong> ${escapeHtml(date)}</div>
+                                                    ${count !== undefined && count !== null ? `<div><strong>Records:</strong> ${escapeHtml(formatValue(count))}</div>` : ''}
+                                                    <div>${escapeHtml(formatValue(description))}</div>
+                                                </div>
+                                            </div>`;
+                                    }).join('')}</div>`
                                     : `<div class="detail-value">${escapeHtml(data.BreachSummary || 'No public breach records were discovered in the current offline analysis.')}</div>`}
+                                ${data.BreachSummary ? `<div class="detail-value" style="margin-top: 8px;"><strong>Summary:</strong> ${escapeHtml(data.BreachSummary)}</div>` : ''}
+                                ${data.BreachSource ? `<div class="detail-value" style="margin-top: 8px;"><strong>Source:</strong> ${escapeHtml(data.BreachSource)}</div>` : ''}
+                            </div>
+                        `);
+                    }
+                    else if (data.BreachesCount !== undefined || data.BreachSummary || data.BreachSource) {
+                        sections.push(`
+                            <div class="detail-section">
+                                <h4>Breach Exposure</h4>
+                                <div class="detail-grid">
+                                    ${data.BreachesCount !== undefined ? `<div class="detail-item"><div class="detail-label">Count</div><div class="detail-value">${escapeHtml(formatValue(data.BreachesCount))}</div></div>` : ''}
+                                    ${data.BreachSummary ? `<div class="detail-item"><div class="detail-label">Summary</div><div class="detail-value">${escapeHtml(data.BreachSummary)}</div></div>` : ''}
+                                    ${data.BreachSource ? `<div class="detail-item"><div class="detail-label">Source</div><div class="detail-value">${escapeHtml(data.BreachSource)}</div></div>` : ''}
+                                </div>
                             </div>
                         `);
                     }
@@ -552,5 +610,187 @@ public class ExportService : IExportService
         """;
 
         await File.WriteAllTextAsync(filePath, htmlContent);
+    }
+
+    private static object? ParseRawData(string rawDataJson)
+    {
+        if (string.IsNullOrWhiteSpace(rawDataJson))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var doc = JsonDocument.Parse(rawDataJson);
+            return ConvertJsonElement(doc.RootElement);
+        }
+        catch
+        {
+            return rawDataJson;
+        }
+    }
+
+    private static object? ConvertJsonElement(JsonElement element)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.Object => element.EnumerateObject().ToDictionary(property => property.Name, property => ConvertJsonElement(property.Value)),
+            JsonValueKind.Array => element.EnumerateArray().Select(ConvertJsonElement).ToList(),
+            JsonValueKind.String => element.GetString(),
+            JsonValueKind.Number when element.TryGetInt32(out var intValue) => intValue,
+            JsonValueKind.Number when element.TryGetInt64(out var longValue) => longValue,
+            JsonValueKind.Number => element.GetDouble(),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Null => null,
+            _ => element.ToString()
+        };
+    }
+
+    private static BreachMetadata ExtractBreachMetadata(object? rawData)
+    {
+        if (rawData is Dictionary<string, object?> values)
+        {
+            var breachesCount = ExtractInt(values, "BreachesCount", "breachesCount", "count") ?? 0;
+            var breachSummary = ExtractString(values, "BreachSummary", "breachSummary", "summary") ?? ExtractString(values, "Summary", "summary");
+            var breachSource = ExtractString(values, "BreachSource", "breachSource", "source");
+            var breachDetails = ExtractObject(values, "BreachDetails", "breachDetails", "details", "ExposedBreaches");
+            return new BreachMetadata(breachesCount, breachSummary, breachSource, breachDetails);
+        }
+
+        if (rawData is JsonElement element)
+        {
+            if (element.ValueKind == JsonValueKind.Object)
+            {
+                var breachesCount = ExtractInt(element, "BreachesCount", "breachesCount", "count") ?? 0;
+                var breachSummary = ExtractString(element, "BreachSummary", "breachSummary", "summary") ?? ExtractString(element, "Summary", "summary");
+                var breachSource = ExtractString(element, "BreachSource", "breachSource", "source");
+                var breachDetails = ExtractObject(element, "BreachDetails", "breachDetails", "details", "ExposedBreaches");
+                return new BreachMetadata(breachesCount, breachSummary, breachSource, breachDetails);
+            }
+
+            if (element.ValueKind == JsonValueKind.Array)
+            {
+                var items = element.EnumerateArray().Select(ConvertJsonElement).ToList();
+                return new BreachMetadata(items.Count, null, null, items);
+            }
+        }
+
+        return new BreachMetadata(0, null, null, null);
+    }
+
+    private static int? ExtractInt(IDictionary<string, object?> values, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (values.TryGetValue(key, out var value) && value is not null)
+            {
+                if (value is int intValue)
+                {
+                    return intValue;
+                }
+
+                if (value is long longValue)
+                {
+                    return (int)longValue;
+                }
+
+                if (int.TryParse(value.ToString(), out var parsed))
+                {
+                    return parsed;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static int? ExtractInt(JsonElement element, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (element.TryGetProperty(key, out var property))
+            {
+                if (property.ValueKind == JsonValueKind.Number && property.TryGetInt32(out var intValue))
+                {
+                    return intValue;
+                }
+
+                if (property.ValueKind == JsonValueKind.String && int.TryParse(property.GetString(), out var parsed))
+                {
+                    return parsed;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static string? ExtractString(IDictionary<string, object?> values, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (values.TryGetValue(key, out var value) && value is not null)
+            {
+                return value.ToString();
+            }
+        }
+
+        return null;
+    }
+
+    private static string? ExtractString(JsonElement element, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (element.TryGetProperty(key, out var property) && property.ValueKind is JsonValueKind.String)
+            {
+                return property.GetString();
+            }
+        }
+
+        return null;
+    }
+
+    private static object? ExtractObject(IDictionary<string, object?> values, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (values.TryGetValue(key, out var value) && value is not null)
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    private static object? ExtractObject(JsonElement element, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (element.TryGetProperty(key, out var property))
+            {
+                return ConvertJsonElement(property);
+            }
+        }
+
+        return null;
+    }
+
+    private sealed class BreachMetadata
+    {
+        public BreachMetadata(int breachesCount, string? breachSummary, string? breachSource, object? breachDetails)
+        {
+            BreachesCount = breachesCount;
+            BreachSummary = breachSummary;
+            BreachSource = breachSource;
+            BreachDetails = breachDetails;
+        }
+
+        public int? BreachesCount { get; }
+        public string? BreachSummary { get; }
+        public string? BreachSource { get; }
+        public object? BreachDetails { get; }
     }
 }

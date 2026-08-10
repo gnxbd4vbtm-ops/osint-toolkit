@@ -27,24 +27,6 @@ dotnet run --project src/OsintToolkit.CLI -- scan --target example.com
 dotnet run --project src/OsintToolkit.CLI -- export --session <SESSION_ID> --format html
 ```
 
-GUI (Avalonia)
-- Run the desktop GUI:
-```bash
-dotnet run --project src/OsintToolkit.WPF
-```
-
-Wayland-specific notes (Linux)
-- The GUI prefers Wayland when the `WAYLAND_DISPLAY` environment variable is present. To force native Wayland rendering (instead of XWayland), set:
-```bash
-export OSINT_NATIVE_WAYLAND=1
-```
-- Ensure required system packages are installed. On Debian/Ubuntu, installing these is a good start:
-```bash
-sudo apt update
-sudo apt install -y libwayland-client0 libwayland-cursor0 libxkbcommon0 libegl1-mesa libgbm1 libxcb-xfixes0 libx11-6
-```
-- If you encounter rendering issues, try running under XWayland (unset `OSINT_NATIVE_WAYLAND`) or run the CLI instead.
-
 HTML report details
 - Exports include all module `RawDataJson` payloads; the HTML report contains structured findings and a styled dashboard.
 
